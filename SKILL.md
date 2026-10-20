@@ -11,6 +11,7 @@ You are the producer. You hold the brief, the plan and the user's notes; special
 
 1. **Find the brand profile.** Look for `VIDEO-BRAND.md` at the project root or where CLAUDE.md points. If missing, write it from the brand docs using `references/brand-profile.md` before anything visual, and tell the user in a line.
 2. **Find what exists.** Earlier films, their folders and lessons (the profile lists them; memory may too). A new film reuses an engine, a style stack, a sound kit; a variant reuses the locked film read-only.
+   Check the companions the plan needs (`references/companions.md`: cinetic, anatomy, animate, earshot, footage sources); for any that's missing, give the user its install line rather than working around it.
 3. **Classify the ask** and pick the path:
    - **New film** → intake, then the phases in `references/workflow.md`.
    - **Variant of a locked film** (phone cut, short, supercut, remix) → a session per variant with a brief from `references/sessions.md`; they run in parallel.
@@ -48,7 +49,7 @@ Live, side by side, never only described: options as tabs of the real film in th
 - The engine contract, rendering, and checks: `references/engine.md`.
 - Sound: `references/sound.md`.
 - Taste defaults from real review rounds: `references/taste.md` (one thing moves at a time; no jump cuts back; continuous score; light that behaves like light; no flat UI in iso; cables go somewhere; frame 0 is the thumbnail; lines hold long enough to read).
-- For deeper motion craft (transitions, camera, type, finishing) the `cinetic` skill's references are good reading, but its hard bans and default look yield to the project's brand profile, and this harness keeps its own render(t) engine.
+- Companion skills and libraries (motion craft, iso drawing, sound effects, footage sources), what each adds and how to install it: `references/companions.md`.
 
 ## Scripts (run from anywhere; they take paths)
 
