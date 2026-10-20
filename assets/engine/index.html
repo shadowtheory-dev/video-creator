@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Film</title>
+<!-- Brand: link the project's tokens and fonts here (see the project's VIDEO-BRAND.md). -->
+<style>
+:root{/* neutral placeholders: replace with the brand's tokens */--ink:#121212;--paper:#F5F5F5;--accent:#8A8A8A;--serif:Georgia,serif;--sans:system-ui,sans-serif;--mono:ui-monospace,monospace}
+*{box-sizing:border-box}
+html,body{margin:0;background:#151515;color:var(--paper);font-family:var(--sans)}
+#frame{position:relative;margin:16px auto 0;overflow:hidden;background:#000}
+#stage{position:absolute;left:0;top:0;overflow:hidden;transform-origin:0 0;background:var(--ink)}
+.capture body{background:#000}.capture #frame{margin:0}.capture #ui{display:none}
+.L{position:absolute;inset:0;pointer-events:none}
+/* the narrator pill and big type: one line at a time, placed per shot */
+#pill{position:absolute;left:50%;top:50%;background:rgba(251,251,249,.97);color:var(--ink);border-radius:999px;padding:14px 40px 16px;
+  font:400 56px/1.2 var(--serif);white-space:nowrap;box-shadow:0 18px 50px rgba(0,0,0,.28);transform:translate(-50%,-50%)}
+.big{position:absolute;margin:0;font:400 180px/1 var(--serif);letter-spacing:-.016em;white-space:nowrap;color:var(--paper)}
+#ui{max-width:1240px;margin:12px auto 30px;padding:0 16px;display:grid;gap:10px}
+#ui .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#ui button{font:600 12px/1 var(--sans);border:0;border-radius:8px;background:#eee;color:#111;padding:10px 14px;cursor:pointer}
+#ui input[type=range]{flex:1;min-width:200px}
+#ui .t{font:500 12px/1 var(--mono);min-width:110px;text-align:right}
+#chap{display:flex;flex-wrap:wrap;gap:6px}#chap button{background:#2a2a2a;color:#ddd}#chap button[aria-current=true]{background:var(--accent);color:#fff}
+</style>
+</head>
+<body>
+<script>if (location.hash === '#capture') document.documentElement.classList.add('capture');</script>
+<script src="cues.js"></script>
+<div id="frame">
+  <div id="stage">
+    <canvas class="L" id="bg"></canvas>
+    <div class="L" id="type"></div>
+    <div class="L" id="narr"><div id="pill"></div></div>
+  </div>
+</div>
+<div id="ui">
+  <div class="row"><button id="play" type="button">Play</button><input id="scrub" type="range" min="0" step="0.001" value="0" aria-label="Time"><span class="t" id="tc">0.00</span><label><input id="snd" type="checkbox" checked> Sound</label></div>
+  <div id="chap"></div>
+  <audio id="score" src="score.wav" preload="auto"></audio>
+</div>
+<script src="film.js"></script>
+</body>
+</html>

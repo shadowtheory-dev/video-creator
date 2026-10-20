@@ -1,0 +1,5 @@
+.DS_Store
+node_modules/
+shots/
+*.mp4
+*.wav

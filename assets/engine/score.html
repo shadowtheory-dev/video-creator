@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Score</title>
+<style>body{font:14px/1.5 system-ui;margin:40px;background:#111;color:#ddd}button{font:inherit;padding:8px 14px}</style></head>
+<body>
+<p>The film's code score, rendered offline from the same cue table as the picture. <code>node scripts/score.mjs score.html score.wav</code></p>
+<button id="go">Render and play</button> <span id="st"></span>
+<script src="cues.js"></script>
+<script>
+/* A minimal groove from cues.js: kick, snare, hats and a pad, continuous from the first frame to the fade.
+   Add the picture's sounds at their cues, each placed so its PEAK lands on the event. Master to about -14 LUFS with
+   true peak at or under -1 dBTP (check with scripts/check.py after muxing). For music you want to see and edit
+   track by track, rebuild it in a track editor (references/sound.md) and keep this file for the picture's sounds. */
+(function () {
+'use strict';
+const C = window.CUES, BEAT = C.BEAT, b = C.b, SR = 48000, LEN = C.DUR + 0.25;
+function rng(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const nz = n => { const m = /^([A-G])(#|b)?(-?\d)$/.exec(n); const st = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0); return 440 * Math.pow(2, (st + (+m[3] + 1) * 12 - 69) / 12); };
+async function render() {
+  const ac = new OfflineAudioContext(2, Math.ceil(SR * LEN), SR);
+  const master = ac.createGain(); master.gain.value = 0.6;
+  const lim = ac.createDynamicsCompressor(); lim.threshold.value = -20; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.1;
+  const trim = ac.createGain(); trim.gain.value = 1.2;   /* then master.sh brings it to -14 LUFS, true peak -1.5 */
+  master.connect(lim); lim.connect(trim); trim.connect(ac.destination);
+  const R = rng(7), nb = ac.createBuffer(1, SR * 2, SR), nd = nb.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = R() * 2 - 1;
+  const noise = (t, d) => { const s = ac.createBufferSource(); s.buffer = nb; s.start(t, R(), d + 0.05); return s; };
+  const env = (g, t, a, p, d) => { g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(p, t + a); g.gain.setTargetAtTime(0, t + a, d / 4); };
+  const kick = (t, v) => { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.1); env(g, t, 0.002, v, 0.3); o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.6); };
+  const snare = (t, v) => { const n = noise(t, 0.25), f = ac.createBiquadFilter(), g = ac.createGain(); f.type = 'bandpass'; f.frequency.value = 1900; env(g, t, 0.001, v, 0.18); n.connect(f); f.connect(g); g.connect(master); };
+  const hat = (t, v) => { const n = noise(t, 0.06), f = ac.createBiquadFilter(), g = ac.createGain(); f.type = 'highpass'; f.frequency.value = 7500; env(g, t, 0.001, v, 0.04); n.connect(f); f.connect(g); g.connect(master); };
+  const pad = (t, notes, d, v) => notes.forEach(n => { const o = ac.createOscillator(), g = ac.createGain(), lp = ac.createBiquadFilter(); o.type = 'sawtooth'; o.frequency.value = nz(n); lp.type = 'lowpass'; lp.frequency.value = 900; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.2); g.gain.setTargetAtTime(0, t + d, 0.2); o.connect(lp); lp.connect(g); g.connect(master); o.start(t); o.stop(t + d + 1); });
+  const PROG = [['A2', 'E3', 'C4'], ['F2', 'C3', 'A3'], ['C3', 'G3', 'E4'], ['G2', 'D3', 'B3']];
+  for (let beat = 0; beat < C.DUR / BEAT - 0.5; beat += 0.25) {
+    const t = b(beat), s = Math.round(beat * 4) % 16;
+    if (s === 0 || s === 10) kick(t, 0.9); if (s === 4 || s === 12) snare(t, 0.6); if (s % 2 === 0) hat(t, 0.15);
+    if (s === 0) pad(t, PROG[Math.floor(beat / 4) % 4], BEAT * 3.8, 0.04);
+  }
+  C.proof.hits.forEach(h => { kick(b(h), 1); });          /* a sound for each picture hit, on its peak */
+  master.gain.setValueAtTime(0.6, b(C.end.fade[0])); master.gain.linearRampToValueAtTime(0.0001, b(C.end.fade[1]));
+  return ac.startRendering();
+}
+function wav(buf) {
+  const n = buf.length, ch = 2, out = new DataView(new ArrayBuffer(44 + n * ch * 2)), w = (o, s) => [...s].forEach((c, i) => out.setUint8(o + i, c.charCodeAt(0)));
+  w(0, 'RIFF'); out.setUint32(4, 36 + n * ch * 2, true); w(8, 'WAVE'); w(12, 'fmt '); out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, ch, true);
+  out.setUint32(24, SR, true); out.setUint32(28, SR * ch * 2, true); out.setUint16(32, ch * 2, true); out.setUint16(34, 16, true); w(36, 'data'); out.setUint32(40, n * ch * 2, true);
+  const d = [buf.getChannelData(0), buf.getChannelData(1)];
+  for (let i = 0; i < n; i++) for (let c = 0; c < ch; c++) { const v = Math.max(-1, Math.min(1, d[c][i])); out.setInt16(44 + (i * ch + c) * 2, v < 0 ? v * 32768 : v * 32767, true); }
+  return out.buffer;
+}
+window.renderScore = async () => {
+  const buf = await render(), bytes = new Uint8Array(wav(buf)); let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  let peak = 0; for (let c = 0; c < 2; c++) { const d = buf.getChannelData(c); for (let i = 0; i < d.length; i++) peak = Math.max(peak, Math.abs(d[i])); }
+  return { b64: btoa(s), peak, secs: buf.length / SR };
+};
+document.getElementById('go').onclick = async () => { const buf = await render(), ctx = new AudioContext(), src = ctx.createBufferSource(); src.buffer = buf; src.connect(ctx.destination); src.start(); };
+})();
+</script>
+</body></html>
